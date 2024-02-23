@@ -1703,14 +1703,15 @@ static int picoquic_retransmit_needed_packet(picoquic_cnx_t* cnx, picoquic_packe
                         old_p->send_time > old_path->last_loss_event_detected) {
                         old_path->nb_retransmit++;
                         old_path->last_loss_event_detected = current_time;
-                        if (old_path->nb_retransmit > 7 &&
+                        // Chris: We want to remove this code to check idle timeout connection termination
+                        /* if (old_path->nb_retransmit > 7 &&
                             cnx->cnx_state >= picoquic_state_ready) {
-                            /* Max retransmission reached for this path */
+                            // Max retransmission reached for this path 
                             DBG_PRINTF("%s\n", "Too many data retransmits, abandon path");
                             picoquic_log_app_message(cnx, "%s", "Too many data retransmits, abandon path");
                             old_path->challenge_failed = 1;
                             cnx->path_demotion_needed = 1;
-                        }
+                        } */
                     }
 
                     /* Then, manage the total number of retransmissions across all paths. */
@@ -1726,10 +1727,10 @@ static int picoquic_retransmit_needed_packet(picoquic_cnx_t* cnx, picoquic_packe
                                 }
                             }
                         }
+                        // Chris: We want to remove this code to check idle timeout connection termination
+                        /*
                         if (all_paths_bad) {
-                            /*
-                             * Max retransmission count was exceeded. Disconnect.
-                             */
+                            // Max retransmission count was exceeded. Disconnect.
                             DBG_PRINTF("Too many retransmits of packet number %d, disconnect", (int)old_p->sequence_number);
                             cnx->local_error = PICOQUIC_ERROR_REPEAT_TIMEOUT;
                             picoquic_connection_disconnect(cnx);
@@ -1737,6 +1738,7 @@ static int picoquic_retransmit_needed_packet(picoquic_cnx_t* cnx, picoquic_packe
                             *continue_next = 0;
                             exit_early = 1;
                         }
+                        */
                     }
                 }
 
@@ -4275,6 +4277,7 @@ int picoquic_prepare_packet_ready(picoquic_cnx_t* cnx, picoquic_path_t* path_x, 
     return ret;
 }
 
+
 static int picoquic_check_idle_timer(picoquic_cnx_t* cnx, uint64_t* next_wake_time, uint64_t current_time)
 {
     int ret = 0;
@@ -4291,17 +4294,17 @@ static int picoquic_check_idle_timer(picoquic_cnx_t* cnx, uint64_t* next_wake_ti
         if (idle_timer < cnx->idle_timeout) {
             idle_timer = UINT64_MAX;
         }
-        picoquic_log_app_message(cnx, "cnx->cnx_state >= picoquic_state_ready - idle_timer: %d\n", idle_timer);
+        DBG_PRINTF("cnx->cnx_state >= picoquic_state_ready - idle_timer: %d\n", idle_timer);
     }
     else if (cnx->local_parameters.idle_timeout > (PICOQUIC_MICROSEC_HANDSHAKE_MAX / 1000)) {
         idle_timer = cnx->start_time + cnx->local_parameters.idle_timeout*1000ull;
-        picoquic_log_app_message(cnx, "cnx->local_parameters.idle_timeout > (PICOQUIC_MICROSEC_HANDSHAKE_MAX / 1000) - idle_timer: %d\n", idle_timer);
+        DBG_PRINTF("cnx->local_parameters.idle_timeout > (PICOQUIC_MICROSEC_HANDSHAKE_MAX / 1000) - idle_timer: %d\n", idle_timer);
     }
     else {
         idle_timer = cnx->start_time + PICOQUIC_MICROSEC_HANDSHAKE_MAX;
-        picoquic_log_app_message(cnx, "else - idle_timer: %d\n", idle_timer);
+        DBG_PRINTF("else - idle_timer: %d\n", idle_timer);
     }
-    picoquic_log_app_message(cnx, "current_time: %d\n", current_time);
+    DBG_PRINTF("current_time: %d\n", current_time);
     picoquic_log_app_message(cnx, "idle_timer: %d",  idle_timer);
     if (current_time >= idle_timer) {
         /* Too long silence, break it. */
